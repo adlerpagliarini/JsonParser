@@ -10,7 +10,8 @@ namespace JsonParser
     {
         static void Main(string[] args)
         {
-            var stringfy = @"{ 'name': 'adler', 'age': 28, 'obj1': { 'A': 'A' }, 'obj2': { 'B': 'B', 'C': { 'CC': 1 } } }";
+            var stringfy = @"{ 'name': 'adler', 'age': 28, 'obj': { 'A': 1 }, 'obj2': { 'B': 'B', 'C': { 'CC': 1 }, 'D': { 'DD': 2 } }
+                           }";
 
             var jsonObject = JsonConvert.DeserializeObject<JObject>(stringfy);
 
@@ -21,30 +22,36 @@ namespace JsonParser
 
                 var fields = jObject.Properties().Where(p => p.Value.GetType().Name == "JValue").ToList();
                 var objects = jObject.Properties().Where(p => p.Value.GetType().Name == "JObject").ToList();
-                var arrays = jObject.Properties().Where(p => p.Value.GetType().Name == "JArray").ToList();
 
-                var renamed = objects.Select(obj => RenameByParentName(obj.Value.ToObject<JObject>(), obj.Name)).ToList();
-                var innerObjects = new List<JProperty>();
-                var groupRenamed = new JObject();
-                if (renamed.Count > 0)
-                {
-                    groupRenamed = renamed.Aggregate((acc, next) => JoinObject(acc, next));
-                    var nestedObjects = groupRenamed.Properties().Where(p => p.Value.GetType().Name == "JObject").ToList();
-                    innerObjects.AddRange(nestedObjects);
-                    nestedObjects.ForEach(p => groupRenamed.Remove(p.Name));
-                }
+                var inners = ProcessInnerObjects(objects);
 
-                var inners = new List<JObject>();
-                foreach (var inner in innerObjects)
-                {
-                    var temp = CreateObject(inner.Value.ToObject<JObject>(), inner.Name).First();
-                    inners.Add(temp);
-                }
-
-                var interJoined = JoinObject(new JObject(fields), groupRenamed);
-                var joinedAll = inners.Aggregate(interJoined, (joined, next) => JoinObject(joined, next));
+                var joinedAll = inners.Aggregate(new JObject(fields), (joined, next) => JoinObject(joined, next));
 
                 return new List<JObject> { joinedAll };
+            }
+
+            static List<JObject> ProcessInnerObjects(List<JProperty> jObjects)
+            {
+                var inners = new List<JObject>();
+                var renamed = jObjects?.Select(obj => RenameByParentName(obj.Value.ToObject<JObject>(), obj.Name)).ToList();
+                
+                if (renamed?.Count > 0)
+                {
+                    var groupRenamed = renamed.Aggregate((acc, next) => JoinObject(acc, next));
+                    var nestedObjects = groupRenamed.Properties().Where(p => p.Value.GetType().Name == "JObject").ToList();
+                    nestedObjects.ForEach(p => groupRenamed.Remove(p.Name));
+
+                    var tempList = new List<JObject>();
+                    foreach (var inner in nestedObjects)
+                    {
+                        var temp = CreateObject(inner.Value.ToObject<JObject>(), inner.Name).First();
+                        tempList.Add(temp);
+                    }
+
+                    var grouped = tempList.Aggregate(groupRenamed, (acc, next) => JoinObject(acc, next));
+                    inners.Add(grouped);
+                }
+                return inners;
             }
 
             static JObject RenameByParentName(JObject jObject, string parentName)
