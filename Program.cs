@@ -10,19 +10,19 @@ namespace JsonParser
     {
         static void Main(string[] args)
         {
-            var stringfy = @"{ 'name': 'Adler', 'secondName': 'Pagliarini',
-                               'obj1': { 'A': 1 },
-                               'obj2': { 'B': 2 },
-                               'objInArr': { 'B': 'B', 'C': { 'CC': 'CC', 'D': { 'DD': 'DDD' } }, InArr: [{ 'Arr': 'Arr_1' }, { 'Arr': 'Arr_2' }] },
-                               'ArrayN': [{ 'Array1': 1 }, { 'Array1': 11 }, { 'ArrayOfArray': [{ 'AofA': 'AofA_1' }, { 'AofA': 'AofA_2' }] }],
-                               'ArrayValues': [33, 99]
-                           }"; // OK
-
             //var stringfy = @"{ 'name': 'Adler', 'secondName': 'Pagliarini',
             //                   'obj1': { 'A': 1 },
             //                   'obj2': { 'B': 2 },
-            //                   'objInArr': { 'B': 'B', ToFix : { 'DDAr': [{ 'DDAr': 1 }] } }
-            //               }";
+            //                   'objInArr': { 'B': 'B', 'C': { 'CC': 'CC', 'D': { 'DD': 'DDD' } }, InArr: [{ 'Arr': 'Arr_1' }, { 'Arr': 'Arr_2' }] },
+            //                   'ArrayN': [{ 'Array1': 1 }, { 'Array1': 11 }, { 'ArrayOfArray': [{ 'AofA': 'AofA_1' }, { 'AofA': 'AofA_2' }] }],
+            //                   'ArrayValues': [33, 99]
+            //               }"; // OK
+
+            var stringfy = @"{ 'name': 'Adler', 'secondName': 'Pagliarini',
+                               'obj1': { 'A': 1 },
+                               'obj2': { 'B': 2 },
+                               'objInArr': { 'B': 'B', ToFix : { 'DDAr': [{ 'DDAr': 1 }, { 'DDAr': 2 }] } }
+                           }";
 
 
             //var stringfy = @"{ 'name': 'Adler', 'secondName': 'Pagliarini',
