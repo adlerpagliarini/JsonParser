@@ -11,8 +11,7 @@ namespace JsonParser
         static void Main(string[] args)
         {
             var stringfy = @"{ 'name': 'adler', 'age': 28,
-                               'obj1': { 'B': 'B', 'C': { 'CC': 1 }, 'D': { 'DD': 2 }, Arr: [{ 'Ar': 1 }, { 'Ar': 2 }] },
-                               'obj2': { 'B': 'B', 'C': { 'CC': 1 }, 'D': { 'DD': 2 }, Arr: [{ 'Ar': 1 }, { 'Ar': 2 }] }
+                               'obj2': { 'B': 'B', 'C': { 'CC': 1 }, 'D': { 'DD': 2 }, Arr: [{ 'Ar': 1 }, { 'Ar': 2 }], ArrValue: [1,2,3] }
                            }";
 
             var jsonObject = JsonConvert.DeserializeObject<JObject>(stringfy);
@@ -45,6 +44,8 @@ namespace JsonParser
                     
                     var nestedObjects = groupRenamed.Properties().Where(p => p.Value.GetType().Name == "JObject").ToList();
                     var nestedArrays = groupRenamed.Properties().Where(p => p.Value.GetType().Name == "JArray").ToList();
+                    var nestedObjectsArray = nestedArrays.Where(array => array.Value.All(elements => elements.GetType().Name == "JObject")).ToList();
+                    var nestedValuesArray = nestedArrays.Where(array => array.Value.All(elements => elements.GetType().Name == "JValue")).ToList();
 
                     nestedArrays.ForEach(p => groupRenamed.Remove(p.Name));
                     nestedObjects.ForEach(p => groupRenamed.Remove(p.Name));
@@ -57,7 +58,7 @@ namespace JsonParser
                     }
 
                     var tempNestedArraysObjectList = new List<JObject>();
-                    foreach (var innerArray in nestedArrays)
+                    foreach (var innerArray in nestedObjectsArray)
                     {
                         var name = innerArray.Name;
                         var objects = innerArray.Value;
@@ -68,12 +69,30 @@ namespace JsonParser
                         }
                     }
 
+                    var tempNestedArraysValueList = new List<JObject>();
+                    foreach (var innerArray in nestedValuesArray)
+                    {
+                        var name = innerArray.Name;
+                        var values = innerArray.Value;
+                        foreach (var innerValue in values)
+                        {
+                            tempNestedArraysValueList.Add(new JObject(new JProperty(name, innerValue.ToObject<JValue>())));
+                        }
+                    }
+
                     var groupedNestedObjects = tempNestedObjectList.Aggregate(groupRenamed, (acc, next) => JoinObject(acc, next));
 
+                    var joined = new List<JObject>();
                     if (!tempNestedArraysObjectList.Any())
-                        inners.Add(groupedNestedObjects);
+                        joined.Add(groupedNestedObjects);
                     else
-                        tempNestedArraysObjectList.ForEach(e => inners.Add(JoinObject(groupedNestedObjects, e)));
+                        tempNestedArraysObjectList.ForEach(e => joined.Add(JoinObject(groupedNestedObjects, e)));
+
+                    // To all values, join with Inners for (e: values, inner: inners)
+                    if (tempNestedArraysValueList.Any())
+                        inners.AddRange(tempNestedArraysValueList.SelectMany(value => joined, (value, joinedItem) => JoinObject(joinedItem, value)).ToList());
+                    else
+                        inners.AddRange(joined);
                 }
                 return inners;
             }
