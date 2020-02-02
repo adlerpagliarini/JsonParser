@@ -10,7 +10,9 @@ namespace JsonParser
     {
         static void Main(string[] args)
         {
-            var stringfy = @"{ 'name': 'adler', 'age': 28, 'obj': { 'A': 1 }, 'obj2': { 'B': 'B', 'C': { 'CC': 1 }, 'D': { 'DD': 2 } }
+            var stringfy = @"{ 'name': 'adler', 'age': 28,
+                               'obj1': { 'B': 'B', 'C': { 'CC': 1 }, 'D': { 'DD': 2 }, Arr: [{ 'Ar': 1 }, { 'Ar': 2 }] },
+                               'obj2': { 'B': 'B', 'C': { 'CC': 1 }, 'D': { 'DD': 2 }, Arr: [{ 'Ar': 1 }, { 'Ar': 2 }] }
                            }";
 
             var jsonObject = JsonConvert.DeserializeObject<JObject>(stringfy);
@@ -23,11 +25,13 @@ namespace JsonParser
                 var fields = jObject.Properties().Where(p => p.Value.GetType().Name == "JValue").ToList();
                 var objects = jObject.Properties().Where(p => p.Value.GetType().Name == "JObject").ToList();
 
-                var inners = ProcessInnerObjects(objects);
+                var innerObjects = ProcessInnerObjects(objects);
 
-                var joinedAll = inners.Aggregate(new JObject(fields), (joined, next) => JoinObject(joined, next));
+                var joinedAll = innerObjects.Any() 
+                    ? innerObjects.Select(innerObject => JoinObject(new JObject(fields), innerObject))
+                    : new List<JObject> { new JObject(fields) };
 
-                return new List<JObject> { joinedAll };
+                return joinedAll;
             }
 
             static List<JObject> ProcessInnerObjects(List<JProperty> jObjects)
@@ -38,18 +42,38 @@ namespace JsonParser
                 if (renamed?.Count > 0)
                 {
                     var groupRenamed = renamed.Aggregate((acc, next) => JoinObject(acc, next));
+                    
                     var nestedObjects = groupRenamed.Properties().Where(p => p.Value.GetType().Name == "JObject").ToList();
+                    var nestedArrays = groupRenamed.Properties().Where(p => p.Value.GetType().Name == "JArray").ToList();
+
+                    nestedArrays.ForEach(p => groupRenamed.Remove(p.Name));
                     nestedObjects.ForEach(p => groupRenamed.Remove(p.Name));
 
-                    var tempList = new List<JObject>();
-                    foreach (var inner in nestedObjects)
+                    var tempNestedObjectList = new List<JObject>();
+                    foreach (var innerObject in nestedObjects)
                     {
-                        var temp = CreateObject(inner.Value.ToObject<JObject>(), inner.Name).First();
-                        tempList.Add(temp);
+                        var temp = CreateObject(innerObject.Value.ToObject<JObject>(), innerObject.Name);
+                        tempNestedObjectList.Add(temp.First());
                     }
 
-                    var grouped = tempList.Aggregate(groupRenamed, (acc, next) => JoinObject(acc, next));
-                    inners.Add(grouped);
+                    var tempNestedArraysObjectList = new List<JObject>();
+                    foreach (var innerArray in nestedArrays)
+                    {
+                        var name = innerArray.Name;
+                        var objects = innerArray.Value;
+                        var renamedObjects = objects?.Select(obj => RenameByParentName(obj.ToObject<JObject>(), name)).ToList();
+                        foreach (var innerObject in renamedObjects) {
+                            var temp = CreateObject(innerObject.ToObject<JObject>());
+                            tempNestedArraysObjectList.Add(temp.First());
+                        }
+                    }
+
+                    var groupedNestedObjects = tempNestedObjectList.Aggregate(groupRenamed, (acc, next) => JoinObject(acc, next));
+
+                    if (!tempNestedArraysObjectList.Any())
+                        inners.Add(groupedNestedObjects);
+                    else
+                        tempNestedArraysObjectList.ForEach(e => inners.Add(JoinObject(groupedNestedObjects, e)));
                 }
                 return inners;
             }
@@ -71,6 +95,7 @@ namespace JsonParser
             }
 
             var created = CreateObject(jsonObject);
+            var stringfied = JsonConvert.SerializeObject(created);
         }
     }
 }
