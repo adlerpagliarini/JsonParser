@@ -86,8 +86,10 @@ namespace JsonParser
                     List<JObject> tempNestedArraysValueList = GetObjectsFromArrayOfValue(nestedValuesArray);
                     // AQUI
                     if (tempNestedObjectList.Count() > 1) throw new Exception("More");
-                    var groupedNestedObjects = tempNestedObjectList.Aggregate(groupRenamed, (acc, next) => JoinObject(acc, next));
-                    inners.AddRange(JoinArraysWithObject(tempNestedArraysObjectList, tempNestedArraysValueList, groupedNestedObjects));
+                    var groupedNestedObjects = (tempNestedObjectList.Any()) ? tempNestedObjectList.Select(nested => JoinObject(groupRenamed, nested))
+                        : new List<JObject> { groupRenamed };
+                    var groupedNestedObjectsList = groupedNestedObjects.Select(groupedNested => JoinArraysWithObject(tempNestedArraysObjectList, tempNestedArraysValueList, groupedNested));
+                    inners.AddRange(groupedNestedObjectsList.SelectMany(e => e));
                 }
                 return inners;
             }
