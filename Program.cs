@@ -10,13 +10,22 @@ namespace JsonParser
     {
         static void Main(string[] args)
         {
+
+            //var stringfy = @"{ 'name': 'Adler', 'secondName': 'Pagliarini',
+            //                   'obj1': { 'A': 1 },
+            //                   'obj2': { 'B': 2 },
+            //                   'objInArr': { 'B': 'B', 'C': { 'CC': 'CC', 'D': { 'DD': 'DDD' }, Fixed : { 'DDAr': [{ 'DDAr': 1 }, { 'DDAr': 2 }] } }, InArr: [{ 'Arr': 'Arr_1' }, { 'Arr': 'Arr_2' }] },
+            //                   'ArrayN': [{ 'Array1': 1 }, { 'Array1': 11 }, { 'ArrayOfArray': [{ 'AofA': 'AofA_1' }, { 'AofA': 'AofA_2' }] }],
+            //                   'ArrayValues': [33, 99]
+            //               }"; // OK
+
             var stringfy = @"{ 'name': 'Adler', 'secondName': 'Pagliarini',
-                               'obj1': { 'A': 1 },
-                               'obj2': { 'B': 2 },
-                               'objInArr': { 'B': 'B', 'C': { 'CC': 'CC', 'D': { 'DD': 'DDD' }, Fixed : { 'DDAr': [{ 'DDAr': 1 }, { 'DDAr': 2 }] } }, InArr: [{ 'Arr': 'Arr_1' }, { 'Arr': 'Arr_2' }] },
-                               'ArrayN': [{ 'Array1': 1 }, { 'Array1': 11 }, { 'ArrayOfArray': [{ 'AofA': 'AofA_1' }, { 'AofA': 'AofA_2' }] }],
-                               'ArrayValues': [33, 99]
-                           }"; // OK
+                               'innerObjs': {
+                                   'obj1': { '1': 1 },
+                                   'obj2': { '2': 2 },
+                                   'obj3': { '3': 3 }
+                                }
+                             }";
 
             var jsonObject = JsonConvert.DeserializeObject<JObject>(stringfy);
 
@@ -61,17 +70,22 @@ namespace JsonParser
                     nestedObjects.ForEach(p => groupRenamed.Remove(p.Name));
 
                     var tempNestedObjectList = new List<JObject>();
+                    var tempNestedMultipleObjectList = new List<JObject>();
                     foreach (var innerObject in nestedObjects)
                     {
                         var temp = CreateObject(innerObject.Value.ToObject<JObject>(), innerObject.Name);
-                        tempNestedObjectList.AddRange(temp);
+                        if (temp.Count() > 1)
+                            tempNestedMultipleObjectList.AddRange(temp);
+                        else
+                            tempNestedObjectList.Add(temp.First());
                     }
 
                     List<JObject> tempNestedArraysObjectList = GetObjectsFromArrayOfObject(nestedObjectsArray);
                     List<JObject> tempNestedArraysValueList = GetObjectsFromArrayOfValue(nestedValuesArray);
 
-                    var groupedNestedObjects = (tempNestedObjectList.Any()) ? tempNestedObjectList.Select(nested => JoinObject(groupRenamed, nested))
-                        : new List<JObject> { groupRenamed };
+                    var tempGroupedNestedObjects = tempNestedObjectList.Aggregate(groupRenamed, (acc, next) => JoinObject(acc, next));
+                    var groupedNestedObjects = (tempNestedMultipleObjectList.Any()) ? tempNestedMultipleObjectList.Select(nested => JoinObject(tempGroupedNestedObjects, nested))
+                        : new List<JObject> { tempGroupedNestedObjects };
                     var groupedNestedObjectsList = groupedNestedObjects.Select(groupedNested => JoinArraysWithObject(tempNestedArraysObjectList, tempNestedArraysValueList, groupedNested));
                     inners.AddRange(groupedNestedObjectsList.SelectMany(e => e));
                 }
