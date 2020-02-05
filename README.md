@@ -2,6 +2,7 @@
 Denormalize JsonObject to generate CSV Files
 
 - Input
+```json
 @"{ 'name': 'Adler', 'secondName': 'Pagliarini',
     'obj1': { 'A': 1 },
     'obj2': { 'B': 2 },
@@ -9,8 +10,10 @@ Denormalize JsonObject to generate CSV Files
     'ArrayN': [{ 'Array1': 1 }, { 'Array1': 11 }, { 'ArrayOfArray': [{ 'AofA': 'AofA_1' }, { 'AofA': 'AofA_2' }] }],
     'ArrayValues': [33, 99]
 }";
+```
 
 - Output
+```json
 [{
     "name": "Adler",
     "secondName": "Pagliarini",
@@ -188,3 +191,4 @@ Denormalize JsonObject to generate CSV Files
     "ArrayN_ArrayOfArray_AofA": "AofA_2",
     "ArrayValues": 99
 }]
+```
