@@ -103,9 +103,10 @@ namespace JsonParser
 
             static List<JObject> GetObjectsFromArrayOfObject(List<JProperty> nestedObjectsArray)
             {
-                var tempNestedArraysObjectList = new List<JObject>();
+                var tempJoinedNestedArraysObjectList = new List<JObject>();
                 foreach (var innerArray in nestedObjectsArray)
                 {
+                    var tempNestedArraysObjectList = new List<JObject>();
                     var name = innerArray.Name;
                     var objectsInArray = innerArray.Value;
                     var renamedObjects = objectsInArray?.Select(obj => RenameByParentName(obj.ToObject<JObject>(), name)).ToList();
@@ -114,8 +115,14 @@ namespace JsonParser
                         var temp = CreateObject(innerObject.ToObject<JObject>());
                         tempNestedArraysObjectList.AddRange(temp);
                     }
+
+                    if (!tempJoinedNestedArraysObjectList.Any())
+                        tempJoinedNestedArraysObjectList.AddRange(tempNestedArraysObjectList);
+                    else
+                        tempJoinedNestedArraysObjectList = tempNestedArraysObjectList
+                            .SelectMany(nested => tempJoinedNestedArraysObjectList, (current, joined) => JoinObject(joined, current)).ToList();
                 }
-                return tempNestedArraysObjectList;
+                return tempJoinedNestedArraysObjectList;
             }
 
             static List<JObject> GetObjectsFromArrayOfValue(List<JProperty> nestedValuesArray)
