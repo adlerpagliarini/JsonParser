@@ -116,11 +116,12 @@ namespace JsonParser
                         tempNestedArraysObjectList.AddRange(temp);
                     }
 
-                    if (!tempJoinedNestedArraysObjectList.Any())
-                        tempJoinedNestedArraysObjectList.AddRange(tempNestedArraysObjectList);
-                    else
+                    if (tempJoinedNestedArraysObjectList.Any() && tempNestedArraysObjectList.Any())
                         tempJoinedNestedArraysObjectList = tempNestedArraysObjectList
                             .SelectMany(nested => tempJoinedNestedArraysObjectList, (current, joined) => JoinObject(joined, current)).ToList();
+
+                    if (!tempJoinedNestedArraysObjectList.Any())
+                        tempJoinedNestedArraysObjectList.AddRange(tempNestedArraysObjectList);
                 }
                 return tempJoinedNestedArraysObjectList;
             }
